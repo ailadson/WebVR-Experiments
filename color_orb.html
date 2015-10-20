@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<title>Web VR boilerplate</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<style>
+body {
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  color: #fff;
+  margin: 0px;
+  padding: 0;
+  overflow: hidden;
+}
+</style>
+</head>
+
+<body>
+
+</body>
+
+<script>
+/*
+ * Debug parameters.
+ */
+// Forces availability of VR mode.
+//CARDBOARD_DEBUG = true;
+// Forces distortion in VR mode.
+//WEBVR_FORCE_DISTORTION = true;
+// Override the distortion background color.
+//WEBVR_BACKGROUND_COLOR = {x: 1, y: 0, z: 0, w: 1};
+// Change the tracking prediction mode.
+//WEBVR_PREDICTION_MODE = 2;
+// In prediction mode, change how far into the future to predict.
+//WEBVR_PREDICTION_TIME_MS = 100;
+</script>
+
+<!--
+  three.js 3d library
+  -->
+<script src="bower_components/threejs/build/three.js"></script>
+
+<!--
+  VRControls.js acquires positional information from connected VR devices and applies the transformations to a three.js camera object.
+   -->
+<script src="bower_components/threejs/examples/js/controls/VRControls.js"></script>
+
+<!--
+  VREffect.js handles stereo camera setup and rendering.
+  -->
+<script src="bower_components/threejs/examples/js/effects/VREffect.js"></script>
+
+<!--
+  A polyfill for WebVR using the Device{Motion,Orientation}Event API.
+  -->
+<script src="bower_components/webvr-polyfill/build/webvr-polyfill.js"></script>
+
+<!--
+  Helps enter and exit VR mode, provides best practices while in VR.
+  -->
+<script src="build/webvr-manager.js"></script>
+
+
+<script>
+//Setup three.js WebGL renderer
+var renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+// Append the canvas element created by the renderer to document body element.
+document.body.appendChild(renderer.domElement);
+// Create a three.js scene.
+var scene = new THREE.Scene();
+// Create a three.js camera.
+var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000);
+camera.position.z = 2500;
+// Apply VR headset positional data to camera.
+var controls = new THREE.VRControls(camera);
+// Apply VR stereo rendering to renderer.
+var effect = new THREE.VREffect(renderer);
+effect.setSize(window.innerWidth, window.innerHeight);
+// Add a repeating grid as a skybox.
+// var boxWidth = 5;
+// var texture = THREE.ImageUtils.loadTexture(
+//   'img/box.png'
+// );
+// texture.wrapS = THREE.RepeatWrapping;
+// texture.wrapT = THREE.RepeatWrapping;
+// texture.repeat.set(boxWidth, boxWidth);
+// var geometry = new THREE.BoxGeometry(boxWidth, boxWidth, boxWidth);
+// var material = new THREE.MeshBasicMaterial({
+//   map: texture,
+//   color: 0x01BE00,
+//   side: THREE.BackSide
+// });
+// var skybox = new THREE.Mesh(geometry, material);
+// scene.add(skybox);
+// Create a VR manager helper to enter and exit VR mode.
+var manager = new WebVRManager(renderer, effect, {hideButton: false});
+// Create 3D objects.
+// var geometry = new THREE.BoxGeometry(0.5, 0.5, 0.5);
+// var material = new THREE.MeshNormalMaterial();
+// var cube = new THREE.Mesh(geometry, material);
+// // Position cube mesh
+// cube.position.z = -1;
+// // Add cube mesh to your three.js scene
+// scene.add(cube);
+
+  var smallGeometry = bufferSphereGeometry(600, 25);
+	var midGeometry = bufferSphereGeometry(1400, 40);
+	var largeGeometry = bufferSphereGeometry(2000, 50);
+
+  var material = new THREE.MeshNormalMaterial({
+    color: 0xaaaaaa, specular: 0xffffff, shininess: 250,
+    side: THREE.DoubleSide, vertexColors: THREE.VertexColors
+  });
+
+  mesh1 = new THREE.Mesh( smallGeometry, material);
+	mesh2 = new THREE.Mesh( midGeometry, material);
+	mesh3 = new THREE.Mesh( largeGeometry, material);
+
+  scene.add(mesh1);
+	scene.add(mesh2);
+	scene.add(mesh3);
+// Request animation frame loop function
+var oldTimestamp = 0;
+
+function animate(timestamp) {
+  var dt = timestamp - oldTimestamp;
+  oldTimestamp = timestamp;
+  // Apply rotation to cube mesh
+  // cube.rotation.y += 0.01;
+    mesh1.rotation.x -= Math.random() * 0.1 + 0.01;
+    mesh1.rotation.y -=  Math.random() * 0.1 + 0.01;
+
+		mesh2.rotation.y += Math.random() * 0.001 + 0.025;
+    mesh2.rotation.z += Math.random() * 0.001 + 0.05;
+
+		mesh3.rotation.z -= Math.random() * 0.0001 + 0.002;
+    mesh3.rotation.x -= Math.random() * 0.0001 + 0.005;
+  // // Update VR headset position and apply to camera.
+    // camera.position.z -= 5;
+  controls.update();
+  // Render the scene through the manager.
+  manager.render(scene, camera, timestamp);
+  requestAnimationFrame(animate);
+}
+// Kick off animation loop
+animate();
+// Reset the position sensor when 'z' pressed.
+function onKey(event) {
+  if (event.keyCode == 90) { // z
+    controls.resetSensor();
+  }
+}
+window.addEventListener('keydown', onKey, true);
+// Handle window resizes
+function onWindowResize() {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  effect.setSize(window.innerWidth, window.innerHeight);
+}
+window.addEventListener('resize', onWindowResize, false);
+
+
+function bufferSphereGeometry(spread, tSize){
+				var triangles = 16000/3;
+
+        var geometry = new THREE.BufferGeometry();
+
+        var chunkSize = 21845/3;
+
+        var indices = new Uint16Array( triangles * 3);
+
+        for(var i = 0; i < indices.length; i++){
+          indices[i] = i % (3 * chunkSize);
+        }
+
+        var positions = new Float32Array( triangles * 3 * 3);
+        var normals = new Float32Array( triangles * 3 * 3);
+        var colors = new Float32Array( triangles * 3 * 3);
+
+        var color = new THREE.Color();
+
+        var n = spread, n2 = n/2; //triangle spread in cube
+        var d = tSize, d2 = d/2; //individual triangle size
+
+        var pA = new THREE.Vector3();
+        var pB = new THREE.Vector3();
+        var pC = new THREE.Vector3();
+
+        var cb = new THREE.Vector3();
+        var ab = new THREE.Vector3();
+
+        for(var i = 0; i < positions.length; i += 9){
+          //positions
+          var x = Math.random() * n - n2;
+					var yConstraint = Math.sqrt((n2 * n2) - (x * x));
+					var y = Math.random() * yConstraint * 2 - yConstraint;
+					var zConstraint = Math.sqrt( (n2 * n2) - ((x * x) + (y * y)) );
+					var z = Math.random() * zConstraint * 2 - zConstraint;
+
+					var ax = x + Math.random() * d - d2;
+					var ay = y + Math.random() * d - d2;
+					var az = z + Math.random() * d - d2;
+
+					var bx = x + Math.random() * d - d2;
+					var by = y + Math.random() * d - d2;
+					var bz = z + Math.random() * d - d2;
+
+					var cx = x + Math.random() * d - d2;
+					var cy = y + Math.random() * d - d2;
+					var cz = z + Math.random() * d - d2;
+
+					positions[ i ]     = ax;
+					positions[ i + 1 ] = ay;
+					positions[ i + 2 ] = az;
+
+					positions[ i + 3 ] = bx;
+					positions[ i + 4 ] = by;
+					positions[ i + 5 ] = bz;
+
+					positions[ i + 6 ] = cx;
+					positions[ i + 7 ] = cy;
+					positions[ i + 8 ] = cz;
+
+					// flat face normals
+
+					pA.set( ax, ay, az );
+					pB.set( bx, by, bz );
+					pC.set( cx, cy, cz );
+
+					cb.subVectors( pC, pB );
+					ab.subVectors( pA, pB );
+					cb.cross( ab );
+
+					cb.normalize();
+
+					var nx = cb.x;
+					var ny = cb.y;
+					var nz = cb.z;
+
+					normals[ i ]     = nx;
+					normals[ i + 1 ] = ny;
+					normals[ i + 2 ] = nz;
+
+					normals[ i + 3 ] = nx;
+					normals[ i + 4 ] = ny;
+					normals[ i + 5 ] = nz;
+
+					normals[ i + 6 ] = nx;
+					normals[ i + 7 ] = ny;
+					normals[ i + 8 ] = nz;
+
+					// colors
+
+					var vx = ( x / n ) + 0.5;
+					var vy = ( y / n ) + 0.5;
+					var vz = ( z / n ) + 0.5;
+
+					color.setRGB( vx, vy, vz );
+
+					colors[ i ]     = color.r;
+					colors[ i + 1 ] = color.g;
+					colors[ i + 2 ] = color.b;
+
+					colors[ i + 3 ] = color.r;
+					colors[ i + 4 ] = color.g;
+					colors[ i + 5 ] = color.b;
+
+					colors[ i + 6 ] = color.r;
+					colors[ i + 7 ] = color.g;
+					colors[ i + 8 ] = color.b;
+        }
+
+        geometry.addAttribute('index', new THREE.BufferAttribute( indices, 1));
+        geometry.addAttribute('position', new THREE.BufferAttribute( positions, 3));
+        geometry.addAttribute('normal', new THREE.BufferAttribute( normals, 3));
+        geometry.addAttribute('color', new THREE.BufferAttribute( colors, 3));
+
+        var offsets = triangles / chunkSize;
+
+        for(var i = 0; i < offsets; i +=1){
+
+            var offset = {
+              start: i * chunkSize * 3,
+              index: i * chunkSize * 3,
+              count: Math.min( triangles - (i * chunkSize), chunkSize) * 3
+            }
+
+            geometry.offsets.push(offset);
+        }
+
+        geometry.computeBoundingSphere();
+				return geometry;
+			}
+</script>
+
+</html>
